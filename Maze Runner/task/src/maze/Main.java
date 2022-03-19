@@ -6,15 +6,19 @@ import java.util.Scanner;
 import java.util.Set;
 
 public class Main {
+
+
     public static void main(String[] args) {
         final boolean debugMode = false;
 
-        //Scanner scanner = new Scanner(System.in);
-        //System.out.println("Please, enter the size of a maze");
-        //int height = scanner.nextInt();
-        //int weight = scanner.nextInt();
 
-        Maze maze = new Maze(9, 9, debugMode);
+
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Please, enter the size of a maze");
+        int height = scanner.nextInt();
+        int weight = scanner.nextInt();
+
+        Maze maze = new Maze(height, weight, debugMode);
         maze.generate();
     }
 }
@@ -23,6 +27,7 @@ class Maze {
     private final int height;
     private final int weight;
     private final boolean debugMode;
+    private final Random random;
     final String w = "\u2588\u2588";
     final String o = "  ";
 
@@ -30,6 +35,7 @@ class Maze {
         this.height = height;
         this.weight = weight;
         this.debugMode = debugMode;
+        this.random = new Random();
     }
 
     public void generate() {
@@ -50,7 +56,7 @@ class Maze {
         }
 
         // вычисляем узлы
-        Random random = new Random(99999);
+//        Random random = new Random(99999);
         int node = 0;
         int edge;
         for (

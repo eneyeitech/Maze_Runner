@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
 enum Elem {
     WALL, EMPTY, PATH, DUMMY;
 
@@ -362,17 +363,95 @@ class Maze {
 
 }
 
-public class MazeRunnerTest extends StageTest {
+class Clue {
+    int height;
+    int width;
+    Clue(int h, int w) {
+        height = h;
+        width = w;
+    }
+}
+
+public class MazeRunnerTest extends StageTest<Clue> {
+
+    List<Maze> previousMazes = new ArrayList<>();
 
     @Override
-    public List<TestCase> generate() {
+    public List<TestCase<Clue>> generate() {
         return List.of(
-            new TestCase()
+            new TestCase<Clue>()
+                .setInput("7 9")
+                .setAttach(new Clue(7, 9)),
+
+            new TestCase<Clue>()
+                .setInput("15 35")
+                .setAttach(new Clue(15, 35)),
+
+            new TestCase<Clue>()
+                .setInput("15 35")
+                .setAttach(new Clue(15, 35)),
+
+            new TestCase<Clue>()
+                .setInput("15 35")
+                .setAttach(new Clue(15, 35)),
+
+            new TestCase<Clue>()
+                .setInput("15 35")
+                .setAttach(new Clue(15, 35)),
+
+            new TestCase<Clue>()
+                .setInput("15 35")
+                .setAttach(new Clue(15, 35)),
+
+            new TestCase<Clue>()
+                .setInput("15 35")
+                .setAttach(new Clue(15, 35)),
+
+            new TestCase<Clue>()
+                .setInput("15 35")
+                .setAttach(new Clue(15, 35)),
+
+            new TestCase<Clue>()
+                .setInput("15 35")
+                .setAttach(new Clue(15, 35)),
+
+            new TestCase<Clue>()
+                .setInput("34 23")
+                .setAttach(new Clue(34, 23)),
+
+            new TestCase<Clue>()
+                .setInput("34 23")
+                .setAttach(new Clue(34, 23)),
+
+            new TestCase<Clue>()
+                .setInput("34 23")
+                .setAttach(new Clue(34, 23)),
+
+            new TestCase<Clue>()
+                .setInput("34 23")
+                .setAttach(new Clue(34, 23)),
+
+            new TestCase<Clue>()
+                .setInput("34 23")
+                .setAttach(new Clue(34, 23)),
+
+            new TestCase<Clue>()
+                .setInput("34 23")
+                .setAttach(new Clue(34, 23)),
+
+            new TestCase<Clue>()
+                .setInput("34 23")
+                .setAttach(new Clue(34, 23)),
+
+            new TestCase<Clue>()
+                .setInput("34 23")
+                .setAttach(new Clue(34, 23))
+
         );
     }
 
     @Override
-    public CheckResult check(String reply, Object clue) {
+    public CheckResult check(String reply, Clue clue) {
 
         List<Maze> mazes;
         try {
@@ -399,6 +478,16 @@ public class MazeRunnerTest extends StageTest {
 
         Maze maze = mazes.get(0);
 
+        for (Maze prev : previousMazes) {
+            if (prev.equals(maze)) {
+                return CheckResult.wrong(
+                    "This is the same maze that was in the previous tests. " +
+                    "You should create an algorithm that generates different mazes."
+                );
+            }
+        }
+        previousMazes.add(maze);
+
         int entrances = maze.countEntrances();
         if (entrances != 2) {
             return new CheckResult(false,
@@ -413,6 +502,18 @@ public class MazeRunnerTest extends StageTest {
                     "cells that are inaccessible from the entrance of the maze " +
                     "(or there is no way from the entrance to the exit)."
             );
+        }
+
+        if (maze.getHeight() != clue.height) {
+            return new CheckResult(false,
+                "Number of rows in the maze is incorrect. " +
+                    "It's " + maze.getHeight() + ", but should be " + clue.height);
+        }
+
+        if (maze.getWidth() != clue.width) {
+            return new CheckResult(false,
+                "Number of columns in the maze is incorrect. " +
+                    "It's " + maze.getWidth() + ", but should be " + clue.width);
         }
 
         return CheckResult.correct();
