@@ -1,95 +1,143 @@
 package maze;
 
+import java.io.*;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
-
 public class Main {
-
-
     public static void main(String[] args) {
+        // Many thanks to Mariano for the idea of using the debugMode flag
         final boolean debugMode = false;
-
-
-
+        Maze maze = null;
+        String fileName;
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Please, enter the size of a maze");
-        int height = scanner.nextInt();
-        int weight = scanner.nextInt();
 
-        Maze maze = new Maze(height, weight, debugMode);
-        maze.generate();
+        while (true) {
+            mainMenu(maze != null);
+            int action = scanner.nextInt();
+            switch (action) {
+                case 1:
+                    System.out.println("Enter the size of a new maze");
+                    int mazeSize = scanner.nextInt();
+                    maze = new Maze(mazeSize, debugMode);
+                    maze.generate();
+                    maze.displayMaze();
+                    break;
+                case 2:
+                    scanner.nextLine();
+                    System.out.println("Enter the file name:");
+                    fileName = scanner.nextLine();
+                    try {
+                        maze = (Maze) Maze.loadMaze(fileName);
+                        System.out.println("Load was successful!");
+                    } catch (Exception e) {
+                        System.out.println("Cannot load the maze. It has an invalid format");
+                        //e.printStackTrace();
+                    }
+                    break;
+                case 3:
+                    if (maze == null) {
+                        System.out.println("Incorrect option. Please try again");
+                    } else {
+                        scanner.nextLine();
+                        System.out.println("Enter the file name:");
+                        fileName = scanner.nextLine();
+                        try {
+                            Maze.saveMaze(maze, fileName);
+                            System.out.println("Save was successful!");
+                        } catch (Exception e) {
+                            System.out.println("ERROR! Save NOT successful. " + e);
+                        }
+                    }
+                    break;
+                case 4:
+                    assert maze != null;
+                    maze.displayMaze();
+                    break;
+                case 0:
+                    System.out.println("Bye !");
+                    System.exit(0);
+                default:
+                    System.out.println("Incorrect option. Please try again");
+                    break;
+            }
+        }
+    }
+
+    public static void mainMenu(boolean hasMaze) {
+        System.out.println("=== Menu ===\n" +
+                "1. Generate a new maze\n" +
+                "2. Load a maze");
+        if (hasMaze) {
+            System.out.println("3. Save the maze\n" +
+                    "4. Display the maze");
+        }
+        System.out.println("0. Exit");
     }
 }
 
-class Maze {
-    private final int height;
-    private final int weight;
+class Maze implements Serializable {
+    private final int mazeSize;
     private final boolean debugMode;
-    private final Random random;
-    final String w = "\u2588\u2588";
-    final String o = "  ";
+    private int[][] minSpanTree;
+    private int[][] maze; // the array of the maze to print
+    final String WALL = "\u2588\u2588";
+    final String EMPTY = "  ";
 
-    public Maze(int height, int weight, boolean debugMode) {
-        this.height = height;
-        this.weight = weight;
+    public Maze(int mazeSize, boolean debugMode) {
+        this.mazeSize = mazeSize;
         this.debugMode = debugMode;
-        this.random = new Random();
     }
 
     public void generate() {
-        int heightEdges = (int) Math.ceil(((double) height - 2) / 2);
-        int weightEdges = (int) Math.ceil(((double) weight - 2) / 2);
+        int heightEdges = (int) Math.ceil(((double) mazeSize - 2) / 2);
+        int weightEdges = (int) Math.ceil(((double) mazeSize - 2) / 2);
         if (debugMode) {
             System.out.println("Матрица узлов " + heightEdges + ":" + weightEdges);
         }
 
         int[][] adjacencyMatrix = new int[heightEdges * weightEdges][heightEdges * weightEdges];
-        // заполним нолями
-        for (
-                int i = 0;
-                i < adjacencyMatrix.length; i++) {
+        // Fill 0
+        for (int i = 0; i < adjacencyMatrix.length; i++) {
             for (int j = 0; j < adjacencyMatrix.length; j++) {
                 adjacencyMatrix[i][j] = 0;
             }
         }
 
-        // вычисляем узлы
-//        Random random = new Random(99999);
+        // Calculating nodes
+        Random random = new Random();
         int node = 0;
         int edge;
-        for (
-                int i = 0;
-                i < adjacencyMatrix.length - 1; i++) {
-            //соседний вправо узел
-            edge = random.nextInt(height * weight) + 1;
-            //елси не выходим за пределы строки массива
+        for (int i = 0; i < adjacencyMatrix.length - 1; i++) {
+            // The adjacent right node
+            edge = random.nextInt(mazeSize * mazeSize) + 1;
+            // Let's check if we are not going out of the array
             if (node + 1 < ((node / weightEdges) + 1) * weightEdges) {
                 adjacencyMatrix[node][node + 1] = edge;
                 adjacencyMatrix[node + 1][node] = edge;
             }
-            // соседний вниз узел
-            edge = random.nextInt(height * weight) + 1;
-            // если не выходим на пределы строки массива
+            // The adjacent lower node
+            edge = random.nextInt(mazeSize * mazeSize) + 1;
+            // Let's check if we are not going out of the array
             if (node + weightEdges < adjacencyMatrix.length) {
                 adjacencyMatrix[node][node + weightEdges] = edge;
                 adjacencyMatrix[node + weightEdges][node] = edge;
             }
             node++;
         }
-        // печать матрицы
+        // Print matrix in debug mode
         if (debugMode) {
-            for (int i = 0; i < adjacencyMatrix.length; i++) {
+            for (int[] matrix : adjacencyMatrix) {
                 for (int j = 0; j < adjacencyMatrix.length; j++) {
-                    System.out.print(adjacencyMatrix[i][j] + ",");
+                    System.out.print(matrix[j] + ",");
                 }
                 System.out.println();
             }
         }
 
-        // минимальное связующее дерево Прима
-        int[][] minSpanTree = new int[adjacencyMatrix.length][adjacencyMatrix.length];
+        // Minimum spanning tree Pims
+        minSpanTree = new int[adjacencyMatrix.length][adjacencyMatrix.length];
         Set<Integer> addedNodes = new HashSet<>();
         addedNodes.add(0);
         int way = 0;
@@ -102,7 +150,7 @@ class Maze {
 
             for (int eachNode : addedNodes) {
                 for (int j = 0; j < adjacencyMatrix.length; j++) {
-                    // проверим кажое ребро ноды в наборе на значение, что оно не ноль и что оно не в наборе
+                    // Check each node in the set for the value that it is not zero and that it is not in the set
                     if (adjacencyMatrix[eachNode][j] < minValues && adjacencyMatrix[eachNode][j] > 0) {
                         if (!addedNodes.contains(j)) {
                             minValues = adjacencyMatrix[eachNode][j];
@@ -113,40 +161,39 @@ class Maze {
                 }
             }
 
-            // вычислим минимальный путь
+            // Calculating minimal tree
             way += adjacencyMatrix[currentNode][nextNode];
-            // выведем ребра
+            // Print nodes in debug mode
             if (debugMode) {
                 System.out.println(currentNode + ":" + nextNode + " " + adjacencyMatrix[currentNode][nextNode]);
             }
-            // добавим найденный узел в набор и в матрицу минимального дерева
+            // Adding the found node to the set and to the minimal tree matrix
             addedNodes.add(nextNode);
             minSpanTree[currentNode][nextNode] = 1;
             minSpanTree[nextNode][currentNode] = 1;
 
         }
-        // напечатаем матрицу минимального дерева
+
+        // Print minimum tree in debug mode
         if (debugMode) {
             System.out.println("Minimum way:" + way);
-            for (int i = 0; i < minSpanTree.length; i++) {
+            for (int[] ints : minSpanTree) {
                 for (int j = 0; j < minSpanTree.length; j++) {
-                    System.out.print(minSpanTree[i][j] + ",");
+                    System.out.print(ints[j] + ",");
                 }
                 System.out.println();
             }
         }
 
-        // подготовка лабиринта
-        // сначала заполним его стенами
-        int[][] maze = new int[height][weight];
-        for (
-                int i = 0;
-                i < height; i++) {
-            for (int j = 0; j < weight; j++) {
+        // Prepare maze
+        // Lets fill it walls (1 = wall)
+        maze = new int[mazeSize][mazeSize];
+        for (int i = 0; i < mazeSize; i++) {
+            for (int j = 0; j < mazeSize; j++) {
                 maze[i][j] = 1;
             }
         }
-        // вход в лабиринт всегда там где нода 0
+        // The entrance to the maze is always where be node #0
         maze[1][0] = 0;
 
         int currentEdge = 0;
@@ -173,25 +220,43 @@ class Maze {
             }
 
             currentEdge++;
-            // если нода была последней то сразу рисуем выход рядом с ней
+            // if the node was the last then the exit next to it
             if (currentEdge == heightEdges * weightEdges) {
-                maze[mazeRow - 2][weight - 1] = 0;
+                maze[mazeRow - 2][mazeSize - 1] = 0;
             }
         }
+    }
 
-        // печать лабиритна
-        for (
-                int i = 0;
-                i < height; i++) {
-            for (int j = 0; j < weight; j++) {
+    // Print maze
+    public void displayMaze() {
+        for (int i = 0; i < mazeSize; i++) {
+            for (int j = 0; j < mazeSize; j++) {
                 if (maze[i][j] == 1) {
-                    System.out.print(w);
+                    System.out.print(WALL);
                 } else {
-                    System.out.print(o);
+                    System.out.print(EMPTY);
                 }
             }
             System.out.println();
         }
     }
-}
 
+    // Saving the object using serialization
+    public static void saveMaze(Object obj, String fileName) throws IOException {
+        FileOutputStream fos = new FileOutputStream(fileName);
+        BufferedOutputStream bos = new BufferedOutputStream(fos);
+        ObjectOutputStream oos = new ObjectOutputStream(bos);
+        oos.writeObject(obj);
+        oos.close();
+    }
+
+    // Loading (deserializing) an object
+    public static Object loadMaze(String fileName) throws IOException, ClassNotFoundException {
+        FileInputStream fis = new FileInputStream(fileName);
+        BufferedInputStream bis = new BufferedInputStream(fis);
+        ObjectInputStream ois = new ObjectInputStream(bis);
+        Object obj = ois.readObject();
+        ois.close();
+        return obj;
+    }
+}
